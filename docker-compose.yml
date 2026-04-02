@@ -1,0 +1,118 @@
+version: '3.8'
+
+services:
+  # ==========================================================================
+  # Nginx Reverse Proxy (TLS termination)
+  # ==========================================================================
+  # Request flow: Client → Nginx:443 → WAF:5000 → Backend:8080
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx-logs:/var/log/nginx
+    depends_on:
+      - waf
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==========================================================================
+  # WAF Application
+  # ==========================================================================
+  waf:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - WAF_BACKEND_URL=http://backend:8080
+      - WAF_STORAGE_BACKEND=redis
+      - WAF_REDIS_HOST=redis
+      - WAF_REDIS_PORT=6379
+      - WAF_RATE_LIMIT_ENABLED=true
+      - WAF_RATE_LIMIT_REQUESTS=100
+      - WAF_RATE_LIMIT_WINDOW=60
+      - WAF_BLOCK_DURATION=1800
+      - WAF_PARANOIA_LEVEL=2
+      - WAF_DASHBOARD_USERNAME=admin
+      - WAF_DASHBOARD_PASSWORD=your-secure-password-here
+      - WAF_DASHBOARD_SECRET_KEY=your-secret-key-here
+      # Trust Nginx as proxy
+      - WAF_TRUST_PROXY_HEADERS=true
+      - WAF_TRUSTED_PROXIES=172.16.0.0/12
+      # New v4.0 settings
+      - WAF_CACHE_ENABLED=true
+      - WAF_CACHE_MAX_SIZE=10000
+      - WAF_CACHE_TTL=300
+      - WAF_ANOMALY_ENABLED=true
+      - WAF_ANOMALY_THRESHOLD=60
+      - WAF_SCHEMA_VALIDATION_ENABLED=true
+      - WAF_RULES_AUTO_WATCH=false
+    volumes:
+      - waf-data:/app/data
+      - waf-logs:/app/logs
+    depends_on:
+      - redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/waf/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ==========================================================================
+  # Dashboard
+  # ==========================================================================
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["gunicorn", "--bind", "0.0.0.0:5001", "--workers", "2", "app.dashboard:app"]
+    ports:
+      - "5001:5001"
+    environment:
+      - WAF_STORAGE_BACKEND=redis
+      - WAF_REDIS_HOST=redis
+      - WAF_REDIS_PORT=6379
+      - WAF_DASHBOARD_USERNAME=admin
+      - WAF_DASHBOARD_PASSWORD=your-secure-password-here
+      - WAF_DASHBOARD_SECRET_KEY=your-secret-key-here
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Redis (shared state store)
+  # ==========================================================================
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Example backend service (replace with your actual backend)
+  # ==========================================================================
+  # backend:
+  #   image: your-backend-image
+  #   ports:
+  #     - "8080:8080"
+
+volumes:
+  waf-data:
+  waf-logs:
+  redis-data:
+  nginx-logs:

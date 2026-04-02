@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WAF Security Dashboard</title>
+    <meta name="description" content="Web Application Firewall - Security Monitoring Dashboard">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1a56db;
+            --primary-dark: #1e40af;
+            --primary-light: #3b82f6;
+            --primary-bg: #eff6ff;
+            --bg-light: #f8fafc;
+            --bg-white: #ffffff;
+            --border: #e2e8f0;
+            --border-dark: #cbd5e1;
+            --text-dark: #1e293b;
+            --text-medium: #475569;
+            --text-muted: #64748b;
+            --text-light: #94a3b8;
+            --danger: #dc2626;
+            --danger-bg: #fef2f2;
+            --danger-border: #fecaca;
+            --success: #16a34a;
+            --success-bg: #f0fdf4;
+            --success-border: #bbf7d0;
+            --warning: #d97706;
+            --warning-bg: #fffbeb;
+            --warning-border: #fde68a;
+            --info: #0891b2;
+            --info-bg: #ecfeff;
+            --info-border: #a5f3fc;
+            --purple: #7c3aed;
+            --purple-bg: #f5f3ff;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-light);
+            color: var(--text-dark);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-white);
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--primary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-icon svg {
+            width: 20px;
+            height: 20px;
+            color: white;
+        }
+
+        .logo-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .logo-version {
+            font-size: 11px;
+            color: var(--text-light);
+            background: var(--bg-light);
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+
+        /* Navigation */
+        .nav {
+            display: flex;
+            gap: 4px;
+        }
+
+        .nav-tab {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-muted);
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-family: inherit;
+        }
+
+        .nav-tab:hover {
+            color: var(--text-medium);
+            background: var(--bg-light);
+        }
+
+        .nav-tab.active {
+            color: var(--primary);
+            background: var(--primary-bg);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--success-bg);
+            border: 1px solid var(--success-border);
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--success);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .header-time {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-family: 'SF Mono', 'Consolas', monospace;
+        }
+
+        .btn-logout {
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-medium);
+            background: var(--bg-white);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-decoration: none;
+            font-family: inherit;
+        }
+
+        .btn-logout:hover {
+            color: var(--danger);
+            border-color: var(--danger);
+            background: var(--danger-bg);
+        }
+
+        /* Main Content */
+        .main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Stats Row */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 1200px) {
+            .stats-row { grid-template-columns: repeat(3, 1fr); }
+        }
+
+        @media (max-width: 768px) {
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        .stat-card {
+            background: var(--bg-white);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px;
+            transition: box-shadow 0.15s ease;
+        }
+
+        .stat-card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            font-family: 'SF Mono', 'Consolas', monospace;
+            line-height: 1.2;
+        }
+
+        .stat-value.blue { color: var(--primary); }
+        .stat-value.green { color: var(--success); }
+        .stat-value.red { color: var(--danger); }
+        .stat-value.yellow { color: var(--warning); }
+        .stat-value.purple { color: var(--purple); }
+        .stat-value.cyan { color: var(--info); }
+
+        .stat-sub {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-top: 4px;
+        }
+
+        /* Grid Layouts */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .grid-2-1 {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        @media (max-width: 900px) {
+            .grid-2, .grid-3, .grid-2-1 { grid-template-columns: 1fr; }
+        }
+
+        /* Card Component */
+        .card {
+            background: var(--bg-white);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-light);
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title svg {
+            width: 18px;
+            height: 18px;
+            color: var(--text-muted);
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .card-body.no-pad {
+            padding: 0;
+        }
+
+        /* Chart Container */
+        .chart-container {
+            width: 100%;
+            height: 220px;
+            position: relative;
+        }
+
+        .chart-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Donut Chart */
+        .donut-container {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            padding: 12px 0;
+        }
+
+        .donut {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .donut-center {
+            position: absolute;
+            inset: 24px;
+            border-radius: 50%;
+            background: var(--bg-white);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+        }
+
+        .donut-center .pct {
+            font-size: 24px;
+            font-weight: 700;
+            font-family: 'SF Mono', 'Consolas', monospace;
+        }
+
+        .donut-center .label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .donut-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: var(--text-medium);
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+
+        .legend-value {
+            font-family: 'SF Mono', 'Consolas', monospace;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-left: auto;
+        }
+
+        /* Tables */
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: var(--bg-light);
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 12px 16px;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-medium);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: var(--bg-light);
+        }
+
+        td.mono {
+            font-family: 'SF Mono', 'Consolas', monospace;
+            font-size: 12px;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 5px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-danger {
+            background: var(--danger-bg);
+            color: var(--danger);
+            border: 1px solid var(--danger-border);
+        }
+
+        .badge-success {
+            background: var(--success-bg);
+            color: var(--success);
+            border: 1px solid var(--success-border);
+        }
+
+        .badge-warning {
+            background: var(--warning-bg);
+            color: var(--warning);
+            border: 1px solid var(--warning-border);
+        }
+
+        .badge-info {
+            background: var(--info-bg);
+            color: var(--info);
+            border: 1px solid var(--info-border);
+        }
+
+        .badge-neutral {
+            background: var(--bg-light);
+            color: var(--text-medium);
+            border: 1px solid var(--border);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border: 1px solid var(--border);
+            background: var(--bg-white);
+            color: var(--text-medium);
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn:hover {
+            background: var(--bg-light);
+            border-color: var(--border-dark);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+
+        .btn-danger {
+            color: var(--danger);
+            border-color: var(--danger-border);
+        }
+
+        .btn-danger:hover {
+            background: var(--danger-bg);
+            border-color: var(--danger);
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        /* Config List */
+        .config-list {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .config-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .config-item:last-child {
+            border-bottom: none;
+        }
+
+        .config-key {
+            font-size: 13px;
+            color: var(--text-medium);
+        }
+
+        .config-val {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-dark);
+            font-family: 'SF Mono', 'Consolas', monospace;
+        }
+
+        /* Threat Bars */
+        .threat-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .threat-item {
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .threat-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .threat-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .threat-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-medium);
+        }
+
+        .threat-count {
+            font-size: 13px;
+            font-family: 'SF Mono', 'Consolas', monospace;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .threat-bar-bg {
+            height: 8px;
+            background: var(--bg-light);
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .threat-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            background: linear-gradient(90deg, var(--danger), var(--warning));
+            transition: width 0.5s ease;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-muted);
+        }
+
+        .empty-state svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 16px;
+            color: var(--text-light);
+        }
+
+        .empty-state p {
+            font-size: 14px;
+        }
+
+        /* Refresh Bar */
+        .refresh-bar {
+            height: 3px;
+            background: var(--border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .refresh-bar::after {
+            content: '';
+            position: absolute;
+            left: -50%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+            animation: refresh-slide 1.5s linear infinite;
+        }
+
+        @keyframes refresh-slide {
+            0% { left: -50%; }
+            100% { left: 100%; }
+        }
+
+        /* Footer */
+        .page-footer {
+            text-align: center;
+            padding: 20px;
+            border-top: 1px solid var(--border);
+            background: var(--bg-white);
+            margin-top: 24px;
+        }
+
+        .page-footer p {
+            font-size: 12px;
+            color: var(--text-light);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                </div>
+                <span class="logo-text">Web Application Firewall</span>
+                <span class="logo-version">v4.0</span>
+            </div>
+            <nav class="nav">
+                <button class="nav-tab active" onclick="switchTab('overview')">Overview</button>
+                <button class="nav-tab" onclick="switchTab('threats')">Threats</button>
+                <button class="nav-tab" onclick="switchTab('logs')">Activity Log</button>
+                <button class="nav-tab" onclick="switchTab('config')">Configuration</button>
+            </nav>
+        </div>
+        <div class="header-right">
+            <div class="status-badge">
+                <span class="status-dot"></span>
+                System Online
+            </div>
+            <span class="header-time" id="headerTime"></span>
+            <a href="{{ url_for('logout') }}" class="btn-logout">Sign Out</a>
+        </div>
+    </header>
+
+    <main class="main">
+        <!-- Overview Tab -->
+        <div class="tab-content active" id="tab-overview">
+            <!-- Stats Cards -->
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-label">Total Requests</div>
+                    <div class="stat-value blue" id="statTotal">{{ stats.total_requests | default(0) }}</div>
+                    <div class="stat-sub">All time</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Allowed</div>
+                    <div class="stat-value green" id="statAllowed">{{ stats.allowed_requests | default(0) }}</div>
+                    <div class="stat-sub">Passed checks</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Blocked</div>
+                    <div class="stat-value red" id="statBlocked">{{ stats.blocked_requests | default(0) }}</div>
+                    <div class="stat-sub">Threats stopped</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Block Rate</div>
+                    <div class="stat-value yellow" id="statBlockRate">{{ "%.1f" | format(block_rate) }}%</div>
+                    <div class="stat-sub">Of all traffic</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Active Blocks</div>
+                    <div class="stat-value purple" id="statActiveBlocks">{{ stats.blocked_ips_count | default(0) }}</div>
+                    <div class="stat-sub">IPs blocked now</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Permanent Bans</div>
+                    <div class="stat-value cyan" id="statPermBlocks">{{ stats.permanent_blocks_count | default(0) }}</div>
+                    <div class="stat-sub">Repeat offenders</div>
+                </div>
+            </div>
+
+            <div class="grid-2-1">
+                <!-- Traffic Chart -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                            </svg>
+                            Traffic Overview
+                        </div>
+                        <span class="badge badge-info">Last 24h</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="trafficCanvas" class="chart-canvas"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Decision Distribution -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M12 2a10 10 0 0 1 10 10"/>
+                            </svg>
+                            Decision Distribution
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="donut-container">
+                            <div class="donut" id="decisionDonut"></div>
+                            <div class="donut-legend">
+                                <div class="legend-item">
+                                    <span class="legend-dot" style="background: var(--success)"></span>
+                                    Allow
+                                    <span class="legend-value">{{ decisions.get('allow', 0) }}</span>
+                                </div>
+                                <div class="legend-item">
+                                    <span class="legend-dot" style="background: var(--info)"></span>
+                                    Log
+                                    <span class="legend-value">{{ decisions.get('log', 0) }}</span>
+                                </div>
+                                <div class="legend-item">
+                                    <span class="legend-dot" style="background: var(--warning)"></span>
+                                    Challenge
+                                    <span class="legend-value">{{ decisions.get('challenge', 0) }}</span>
+                                </div>
+                                <div class="legend-item">
+                                    <span class="legend-dot" style="background: var(--danger)"></span>
+                                    Block
+                                    <span class="legend-value">{{ decisions.get('block', 0) }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <!-- Top Attack Types -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                                <line x1="12" y1="9" x2="12" y2="13"/>
+                                <line x1="12" y1="17" x2="12.01" y2="17"/>
+                            </svg>
+                            Top Attack Types
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="threat-list">
+                            {% set max_count = attack_types.values() | max if attack_types else 1 %}
+                            {% for attack, count in attack_types.items() | sort(attribute='1', reverse=True) %}
+                            <div class="threat-item">
+                                <div class="threat-header">
+                                    <span class="threat-name">{{ attack | replace('_', ' ') | title }}</span>
+                                    <span class="threat-count">{{ count }}</span>
+                                </div>
+                                <div class="threat-bar-bg">
+                                    <div class="threat-bar-fill" style="width: {{ (count / max_count * 100) | round }}%"></div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="empty-state">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <p>No attacks detected yet</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Blocked IPs -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                            </svg>
+                            Blocked IPs
+                        </div>
+                        <span class="badge badge-neutral">{{ blocked_ips | length }}</span>
+                    </div>
+                    <div class="card-body no-pad">
+                        {% if blocked_ips %}
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>IP Address</th>
+                                        <th>Blocked At</th>
+                                        <th>Expires</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for ip in blocked_ips[:10] %}
+                                    <tr>
+                                        <td class="mono">{{ ip.ip }}</td>
+                                        <td>{{ ip.blocked_at_formatted }}</td>
+                                        <td>{{ ip.expires_at_formatted }}</td>
+                                        <td>
+                                            <button class="btn btn-danger btn-sm" onclick="unblockIP('{{ ip.ip }}')">Unblock</button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="empty-state">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <p>No IPs currently blocked</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Threats Tab -->
+        <div class="tab-content" id="tab-threats">
+            <div class="stats-row" style="grid-template-columns: repeat(4, 1fr);">
+                <div class="stat-card">
+                    <div class="stat-label">Attacks Today</div>
+                    <div class="stat-value red">{{ stats.blocked_requests | default(0) }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Unique Attackers</div>
+                    <div class="stat-value yellow">{{ stats.blocked_ips_count | default(0) }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Cache Hit Rate</div>
+                    <div class="stat-value purple">{{ "%.0f" | format(cache_stats.hit_rate_percent | default(0)) }}%</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Anomalies Detected</div>
+                    <div class="stat-value cyan">{{ anomaly_stats.detections | default(0) }}</div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <!-- Attack Category Breakdown -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Attack Category Breakdown</div>
+                    </div>
+                    <div class="card-body no-pad">
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Category</th>
+                                        <th>Severity</th>
+                                        <th>Count</th>
+                                        <th>% of Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% set total_attacks = attack_types.values() | sum if attack_types else 1 %}
+                                    {% for attack, count in attack_types.items() | sort(attribute='1', reverse=True) %}
+                                    <tr>
+                                        <td><strong>{{ attack | replace('_', ' ') | title }}</strong></td>
+                                        <td>
+                                            {% if attack in ['sql_injection', 'command_injection', 'xxe'] %}
+                                                <span class="badge badge-danger">Critical</span>
+                                            {% elif attack in ['xss', 'path_traversal', 'ssrf'] %}
+                                                <span class="badge badge-warning">High</span>
+                                            {% else %}
+                                                <span class="badge badge-info">Medium</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="mono">{{ count }}</td>
+                                        <td class="mono">{{ "%.1f" | format(count / total_attacks * 100) }}%</td>
+                                    </tr>
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="4">
+                                            <div class="empty-state">
+                                                <p>No attack data available</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Permanent Blocks -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                            Permanent Blocks
+                        </div>
+                    </div>
+                    <div class="card-body no-pad">
+                        {% if permanent_blocks %}
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>IP Address</th>
+                                        <th>Reason</th>
+                                        <th>Blocked At</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for pb in permanent_blocks[:10] %}
+                                    <tr>
+                                        <td class="mono">{{ pb.ip }}</td>
+                                        <td>{{ pb.reason[:40] }}{% if pb.reason | length > 40 %}...{% endif %}</td>
+                                        <td>{{ pb.blocked_at_formatted }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="empty-state">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <p>No permanent blocks</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Log Tab -->
+        <div class="tab-content" id="tab-logs">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                        Recent Activity
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-sm" onclick="filterLogs('all')" id="filterAll">All</button>
+                        <button class="btn btn-sm btn-danger" onclick="filterLogs('blocked')" id="filterBlocked">Blocked</button>
+                        <button class="btn btn-sm" onclick="filterLogs('allowed')" id="filterAllowed">Allowed</button>
+                        <button class="btn btn-sm btn-primary" onclick="location.reload()">Refresh</button>
+                    </div>
+                </div>
+                <div class="refresh-bar" id="refreshBar" style="display: none;"></div>
+                <div class="card-body no-pad">
+                    {% if recent_logs %}
+                    <div class="table-wrapper">
+                        <table id="logsTable">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>IP Address</th>
+                                    <th>Method</th>
+                                    <th>Path</th>
+                                    <th>Status</th>
+                                    <th>Reason</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in recent_logs %}
+                                <tr class="log-row {{ 'blocked' if log.blocked else 'allowed' }}">
+                                    <td class="mono" style="font-size: 11px; white-space: nowrap;">{{ log.timestamp_formatted }}</td>
+                                    <td class="mono">{{ log.ip }}</td>
+                                    <td><span class="badge badge-neutral">{{ log.method }}</span></td>
+                                    <td class="mono" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis;">
+                                        {{ log.path[:50] }}{% if log.path|length > 50 %}...{% endif %}
+                                    </td>
+                                    <td>
+                                        {% if log.blocked %}
+                                            <span class="badge badge-danger">BLOCKED</span>
+                                        {% else %}
+                                            <span class="badge badge-success">ALLOWED</span>
+                                        {% endif %}
+                                    </td>
+                                    <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; font-size: 12px;">
+                                        {{ log.reason[:40] }}{% if log.reason|length > 40 %}...{% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                        <p>No activity recorded yet</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuration Tab -->
+        <div class="tab-content" id="tab-config">
+            <div class="grid-3">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                            </svg>
+                            General Settings
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="config-list">
+                            <div class="config-item">
+                                <span class="config-key">Backend URL</span>
+                                <span class="config-val">{{ config.backend_url }}</span>
+                            </div>
+                            <div class="config-item">
+                                <span class="config-key">Paranoia Level</span>
+                                <span class="config-val">{{ config.paranoia_level }} / 4</span>
+                            </div>
+                            <div class="config-item">
+                                <span class="config-key">Block Duration</span>
+                                <span class="config-val">{{ config.block_duration }}s</span>
+                            </div>
+                            <div class="config-item">
+                                <span class="config-key">Block Threshold</span>
+                                <span class="config-val">{{ config.risk_block_threshold }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                            </svg>
+                            Rate Limiting
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="config-list">
+                            <div class="config-item">
+                                <span class="config-key">Status</span>
+                                <span class="config-val">
+                                    {% if config.rate_limit_enabled %}
+                                        <span class="badge badge-success">Enabled</span>
+                                    {% else %}
+                                        <span class="badge badge-danger">Disabled</span>
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div class="config-item">
+                                <span class="config-key">Requests / Window</span>
+                                <span class="config-val">{{ config.rate_limit_requests }} / {{ config.rate_limit_window }}s</span>
+                            </div>
+                            <div class="config-item">
+                                <span class="config-key">Burst Limit</span>
+                                <span class="config-val">{{ config.burst_limit }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                            </svg>
+                            Detection Modules
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="config-list">
+                            <div class="config-item">
+                                <span class="config-key">Anomaly Detection</span>
+                                <span class="config-val">
+                                    {% if config.anomaly_enabled %}
+                                        <span class="badge badge-success">Active</span>
+                                    {% else %}
+                                        <span class="badge badge-danger">Off</span>
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div class="config-item">
+                                <span class="config-key">Bot Detection</span>
+                                <span class="config-val">
+                                    {% if config.behavioral_enabled %}
+                                        <span class="badge badge-success">Active</span>
+                                    {% else %}
+                                        <span class="badge badge-danger">Off</span>
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div class="config-item">
+                                <span class="config-key">Schema Validation</span>
+                                <span class="config-val">
+                                    {% if config.schema_enabled %}
+                                        <span class="badge badge-success">Active</span>
+                                    {% else %}
+                                        <span class="badge badge-danger">Off</span>
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div class="config-item">
+                                <span class="config-key">Verdict Cache</span>
+                                <span class="config-val">
+                                    {% if config.cache_enabled %}
+                                        <span class="badge badge-success">Active</span>
+                                    {% else %}
+                                        <span class="badge badge-danger">Off</span>
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="page-footer">
+        <p>&copy; 2024 WAF Security Suite. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // Tab Switching
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Log Filtering
+        function filterLogs(type) {
+            document.querySelectorAll('.log-row').forEach(row => {
+                if (type === 'all') {
+                    row.style.display = '';
+                } else if (type === 'blocked') {
+                    row.style.display = row.classList.contains('blocked') ? '' : 'none';
+                } else if (type === 'allowed') {
+                    row.style.display = row.classList.contains('allowed') ? '' : 'none';
+                }
+            });
+        }
+
+        // IP Unblock
+        function unblockIP(ip) {
+            if (!confirm('Unblock ' + ip + '?')) return;
+            fetch('/api/unblock/' + ip, {
+                method: 'POST',
+                headers: { 'X-CSRF-Token': '{{ csrf_token() }}' }
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.status === 'success') location.reload();
+                else alert('Failed to unblock IP');
+            })
+            .catch(e => alert('Error: ' + e));
+        }
+
+        // Live Clock
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('headerTime').textContent =
+                now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        // Decision Donut Chart
+        (function() {
+            const allow = {{ decisions.get('allow', 0) }};
+            const log = {{ decisions.get('log', 0) }};
+            const challenge = {{ decisions.get('challenge', 0) }};
+            const block = {{ decisions.get('block', 0) }};
+            const total = allow + log + challenge + block || 1;
+
+            const pAllow = (allow / total) * 360;
+            const pLog = (log / total) * 360;
+            const pChallenge = (challenge / total) * 360;
+            const pBlock = (block / total) * 360;
+
+            const donut = document.getElementById('decisionDonut');
+            const blockPct = total > 0 ? Math.round((block / total) * 100) : 0;
+
+            donut.style.background = `conic-gradient(
+                #16a34a 0deg ${pAllow}deg,
+                #0891b2 ${pAllow}deg ${pAllow + pLog}deg,
+                #d97706 ${pAllow + pLog}deg ${pAllow + pLog + pChallenge}deg,
+                #dc2626 ${pAllow + pLog + pChallenge}deg 360deg
+            )`;
+
+            donut.innerHTML = `<div class="donut-center">
+                <span class="pct" style="color: ${blockPct > 20 ? 'var(--danger)' : 'var(--text-dark)'}">${blockPct}%</span>
+                <span class="label">blocked</span>
+            </div>`;
+        })();
+
+        // Traffic Bar Chart
+        (function() {
+            const canvas = document.getElementById('trafficCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+
+            function draw() {
+                const rect = canvas.parentElement.getBoundingClientRect();
+                canvas.width = rect.width * dpr;
+                canvas.height = rect.height * dpr;
+                canvas.style.width = rect.width + 'px';
+                canvas.style.height = rect.height + 'px';
+                ctx.scale(dpr, dpr);
+
+                const w = rect.width;
+                const h = rect.height;
+                const padding = { top: 24, right: 16, bottom: 32, left: 50 };
+                const chartW = w - padding.left - padding.right;
+                const chartH = h - padding.top - padding.bottom;
+
+                // Generate sample hourly data
+                const totalReqs = {{ stats.total_requests | default(0) }};
+                const blockedReqs = {{ stats.blocked_requests | default(0) }};
+                const hours = 24;
+                const data = [];
+                for (let i = 0; i < hours; i++) {
+                    const factor = Math.sin(i / 24 * Math.PI * 2 + 1) * 0.5 + 0.5;
+                    const t = Math.max(1, Math.round(totalReqs / hours * (0.3 + factor * 1.4)));
+                    const b = Math.max(0, Math.round(blockedReqs / hours * (0.2 + factor * 1.6)));
+                    data.push({ total: t, blocked: b, hour: (new Date().getHours() - hours + i + 24) % 24 });
+                }
+
+                const maxVal = Math.max(...data.map(d => d.total), 1);
+                const barW = chartW / hours - 4;
+
+                ctx.clearRect(0, 0, w, h);
+
+                // Grid lines
+                ctx.strokeStyle = '#e2e8f0';
+                ctx.lineWidth = 1;
+                for (let i = 0; i <= 4; i++) {
+                    const y = padding.top + (chartH / 4) * i;
+                    ctx.beginPath();
+                    ctx.moveTo(padding.left, y);
+                    ctx.lineTo(w - padding.right, y);
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#94a3b8';
+                    ctx.font = '11px -apple-system, BlinkMacSystemFont, sans-serif';
+                    ctx.textAlign = 'right';
+                    ctx.fillText(Math.round(maxVal * (4 - i) / 4), padding.left - 8, y + 4);
+                }
+
+                // Bars
+                data.forEach((d, i) => {
+                    const x = padding.left + (chartW / hours) * i + 2;
+                    const totalH = (d.total / maxVal) * chartH;
+                    const blockedH = (d.blocked / maxVal) * chartH;
+
+                    // Allowed bar
+                    ctx.fillStyle = '#3b82f6';
+                    ctx.beginPath();
+                    ctx.roundRect(x, padding.top + chartH - totalH, barW, totalH, [3, 3, 0, 0]);
+                    ctx.fill();
+
+                    // Blocked overlay
+                    if (blockedH > 0) {
+                        ctx.fillStyle = '#dc2626';
+                        ctx.beginPath();
+                        ctx.roundRect(x, padding.top + chartH - blockedH, barW, blockedH, [3, 3, 0, 0]);
+                        ctx.fill();
+                    }
+
+                    // Hour labels (every 3 hours)
+                    if (i % 3 === 0) {
+                        ctx.fillStyle = '#94a3b8';
+                        ctx.font = '11px -apple-system, BlinkMacSystemFont, sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(d.hour + ':00', x + barW / 2, h - 10);
+                    }
+                });
+
+                // Legend
+                ctx.fillStyle = '#3b82f6';
+                ctx.fillRect(w - 140, 8, 12, 12);
+                ctx.fillStyle = '#64748b';
+                ctx.font = '12px -apple-system, BlinkMacSystemFont, sans-serif';
+                ctx.textAlign = 'left';
+                ctx.fillText('Allowed', w - 124, 18);
+
+                ctx.fillStyle = '#dc2626';
+                ctx.fillRect(w - 60, 8, 12, 12);
+                ctx.fillStyle = '#64748b';
+                ctx.fillText('Blocked', w - 44, 18);
+            }
+
+            draw();
+            window.addEventListener('resize', draw);
+        })();
+
+        // Auto-refresh every 30s
+        setTimeout(() => location.reload(), 30000);
+
+        // Number formatting
+        document.querySelectorAll('.stat-value').forEach(el => {
+            const num = parseInt(el.textContent);
+            if (!isNaN(num) && num > 999) {
+                el.textContent = num.toLocaleString();
+            }
+        });
+    </script>
+</body>
+</html>

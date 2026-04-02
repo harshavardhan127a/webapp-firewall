@@ -1,0 +1,25 @@
+{
+    "endpoint": "/api/login",
+    "method": "POST",
+    "schema": {
+        "type": "object",
+        "required": ["username", "password"],
+        "additionalProperties": false,
+        "properties": {
+            "username": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[a-zA-Z0-9_@.+-]+$"
+            },
+            "password": {
+                "type": "string",
+                "minLength": 8,
+                "maxLength": 256
+            },
+            "remember_me": {
+                "type": "boolean"
+            }
+        }
+    }
+}
